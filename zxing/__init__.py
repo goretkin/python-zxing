@@ -43,26 +43,33 @@ class BarCodeReader():
 
     cmd = [ c if c != "LIBS" else os.pathsep.join(libraries) for c in cmd ]
 
-    # send one file, or multiple files in a list
     SINGLE_FILE = False
     if type(files) != type(list()):
-      cmd.append(files)
+      files = [files]
       SINGLE_FILE = True
-    else:
-      cmd += files
+
+    cmd.extend(files)
+
+    #a map from absolute path to index into the file list.
+    canonical_input_files_ordering = {os.path.abspath(f):i for (i,f) in enumerate(files)}
+    codes = [None] * len(files) # ordered codes
 
     self.last_cmd = cmd
     (stdout, stderr) = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True).communicate()
     self.last_stdout = stdout
-    codes = []
-    file_results = stdout.split("\nfile:")
+    file_results = stdout.split("file:")[1:]
     for result in file_results:
+      file_path = result.split(" ")[0] # assume that paths have no spaces
+      if file_path.endswith(":"): # happens for file:/file.png: No barcode found
+        file_path = file_path[:-1]
+      index = canonical_input_files_ordering[os.path.abspath(file_path)]
+
       lines = result.split("\n")
       if re.search("No barcode found", lines[0]):
-        codes.append(None)
+        codes[index] = None # redundant, because list is initialized to None.
         continue
 
-      codes.append(BarCode(result))
+      codes[index] = BarCode(result)
 
     if SINGLE_FILE:
       return codes[0]
