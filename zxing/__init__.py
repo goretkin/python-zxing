@@ -18,9 +18,9 @@ class BarCodeReader():
   libs = ["javase/javase.jar", "core/core.jar"]
   args = ["-cp", "LIBS", "com.google.zxing.client.j2se.CommandLineRunner"]
 
-  def __init__(self, loc=""):
-    if not len(loc):
-      if (os.environ.has_key("ZXING_LIBRARY")):
+  def __init__(self, loc=None):
+    if loc is None:
+      if ("ZXING_LIBRARY" in os.environ):
         loc = os.environ["ZXING_LIBRARY"]
       else:
         loc = ".."
@@ -35,7 +35,7 @@ class BarCodeReader():
     if qr_only:
       cmd.append("--possibleFormats=QR_CODE")
 
-    libraries = [self.location + "/" + l for l in self.libs]
+    libraries = [l for l in self.libs]
 
     cmd = [ c if c != "LIBS" else os.pathsep.join(libraries) for c in cmd ]
 
@@ -51,7 +51,7 @@ class BarCodeReader():
     codes = []
     file_results = stdout.split("\nfile:")
     for result in file_results:
-      lines = stdout.split("\n")
+      lines = result.split("\n")
       if re.search("No barcode found", lines[0]):
         codes.append(None)
         continue
