@@ -27,6 +27,10 @@ class BarCodeReader():
 
     self.location = loc
 
+    # for debugging and development
+    self.last_stdout = None
+    self.last_cmd = None
+
   def decode(self, files, try_harder = False, qr_only = False):
     cmd = [self.command]
     cmd += self.args[:] #copy arg values
@@ -47,7 +51,9 @@ class BarCodeReader():
     else:
       cmd += files
 
+    self.last_cmd = cmd
     (stdout, stderr) = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True).communicate()
+    self.last_stdout = stdout
     codes = []
     file_results = stdout.split("\nfile:")
     for result in file_results:
