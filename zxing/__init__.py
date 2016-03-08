@@ -31,13 +31,15 @@ class BarCodeReader():
     self.last_stdout = None
     self.last_cmd = None
 
-  def decode(self, files, try_harder = False, qr_only = False):
+  def decode(self, files, try_harder = False, qr_only = False, multi = False):
     cmd = [self.command]
     cmd += self.args[:] #copy arg values
     if try_harder:
       cmd.append("--try_harder")
     if qr_only:
       cmd.append("--possibleFormats=QR_CODE")
+    if multi:
+      cmd.append("--multi")
 
     libraries = [l for l in self.libs]
 
@@ -52,7 +54,10 @@ class BarCodeReader():
 
     #a map from absolute path to index into the file list.
     canonical_input_files_ordering = {os.path.abspath(f):i for (i,f) in enumerate(files)}
-    codes = [None] * len(files) # ordered codes
+    if not multi:
+      codes = [None] * len(files) # ordered codes
+    else:
+      codes = [list() for i in range(len(files))]
 
     self.last_cmd = cmd
     (stdout, stderr) = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True).communicate()
@@ -66,10 +71,14 @@ class BarCodeReader():
 
       lines = result.split("\n")
       if re.search("No barcode found", lines[0]):
-        codes[index] = None # redundant, because list is initialized to None.
+        if not multi:
+          codes[index] = None # redundant, because list is initialized to None.
         continue
 
-      codes[index] = BarCode(result)
+      if not multi:
+        codes[index] = BarCode(result)
+      else:
+        codes[index].append(BarCode(result))
 
     if SINGLE_FILE:
       return codes[0]
